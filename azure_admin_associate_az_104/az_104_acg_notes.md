@@ -220,6 +220,13 @@
     - Locks and Tagging
 - Azure Advisor
   - Azure Advisor is a personalized cloud consultant that helps you follow best practices to optimize your Azure deployments. It analyzes your resource configuration and usage telemetry and then recommends solutions that can help you improve the cost-effectiveness, performance, reliability, and security of your Azure resources.
+- Resource Groups
+  - Resources can only exist in one resource group.
+  - Resource Groups cannot be renamed.
+  - Resource Groups can have resources of many different types (services).
+  - Resource Groups can have resources from many different regions.
+  - All the resources in your group should share the same lifecycle. You deploy, update, and delete them together. If one resource, such as a database server, needs to exist on a different deployment cycle it should be in another resource group.
+  - A resource can interact with resources in other resource groups. This interaction is common when the two resources are related but don't share the same lifecycle (for example, web apps connecting to a database).
 
 ## Identity
 
@@ -739,13 +746,18 @@
         - Public IP (Optional)
 - Routing Virtual Networks
   - Routes=Paths for Connectivity (Routes are paths through which traffic can flow)
+  - Each route table can be associated to multiple subnets, but a subnet can only be associated to a single route table.
   - Examples:
     - A route allowing virtual machines to communicate with the internet outbound
   - Routing Types
     - System Routes
       - Default routes built-in to virtual networks that cannot be modified but can ve overriden
+      - Network traffic in Azure is automatically routed across Azure subnets, virtual networks, and on-premises networks. This routing is controlled by system routes, which are assigned by default to each subnet in a virtual network.
     - Custom Routes
       - User-defined routes or border gateway protocol (BGP) routes that override system routes
+        - BGP is used to exchange routes between Azure and on-premises networks.
+        - BGP is the standard routing protocol that is normally used to exchange routing and information among two or more networks.
+        - You'll typically use BGP to advertise on-premises routes to Azure when you're connected to an Azure datacenter through Azure ExpressRoute. You can also configure BGP if you connect to an Azure virtual network by using a VPN site-to-site connection.
       - User-defined routes
         - Routes created by users that take precedence over all routes
         - Ex:
@@ -759,6 +771,15 @@
     - you then can associate multiple subnets to a route table
     - 0.0.0.0/0 is a wildcard to represent any possible IP address
   - Route precedence:  Custom > BGP > System (Therefore Custom routes override every other route)
+  - Route Selection and priority
+    - If multiple routes are available in a route table, Azure uses the route with the longest prefix match. For example, if a message gets sent to the IP address 10.0.0.2, but two routes are available with the 10.0.0.0/16 and 10.0.0.0/24 prefixes, Azure selects the route with the 10.0.0.0/24 prefix because it's more specific.
+    - The longer the route prefix, the shorter the list of IP addresses available through that prefix. When you use longer prefixes, the routing algorithm can select the intended address more quickly.
+  - Valid Next Hop types when creating a user-defined route:
+    - Internet
+    - Virtual Appliance
+    - Virtual Network Gateway
+    - Virtual Network
+    - None
 - Network Security Groups (NSG)
   - An NSG controls the traffic flowing through a virtual network.  This is done so by:
     - Creating rules that define what is allowed/denied
@@ -791,10 +812,15 @@
   - Rule execution order:
     - For inbound traffic, Azure processes the rules in a network security group associated to a subnet first, if there's one, and then the rules in a network security group associated to the network interface, if there's one. This includes intra-subnet traffic as well.
     - For outbound traffic, Azure processes the rules in a network security group associated to a network interface first, if there's one, and then the rules in a network security group associated to the subnet, if there's one. This includes intra-subnet traffic as well.
+  - The recommended method to manage network security through NSGs is to use NSGs assigned at the subnet level whenever possible. NSGs should be assigned directly to VMs only as necessary to handle exceptions. You cannot assign an NSG to a VNet.
   - Application Security Group
     - Separate service that acts as a container of VMs
     - To associate VMs you have to select the VM and then go to networking...Select tab: Configure the application security groups
     - When creating the rule you can use the ASG as either the destination or source
+    - Any NICs that are assigned to an ASG must exist on the same virtual network (VNET) to which the first network interface was assigned.
+    - All network interfaces for both the source and destination application security groups need to exist in the same virtual network.
+  - Each subnet can have zero, or one, associated network security groups.
+  - Each network interface that exists in a subnet can have zero, or one, associated network security groups.
 - Azure DNS
   - A Domain Name System (DNS) hosting service that provides name resolution
   - Implemented Using:
@@ -803,8 +829,14 @@
     - private/public zones
   - Alias Records:
     - Name, Type=A, Value=Azure resource names (in case IP addresses change)
+    - Azure alias records enable a zone apex domain to reference other Azure resources from the DNS zone.
+    - An alias record allows you to link the zone apex (wideworldimports.com) to a load balancer. It creates a link to the Azure resource, rather than a direct IP-based connection. So, if the IP address of your load balancer changes, the zone apex record continues to work.
+    - Even though we're creating an alias, the base record type must still be either A, AAAA, or CNAME.
+    - Alias record set must be "Yes"
+  - The apex domain is the highest level of your domain. In our case, that's wideworldimports.com. The apex domain is also sometimes referred to as the zone apex or root apex. It's often represented by the @ symbol in your DNS zone records.
   - Private DNS Zone
     - Virtual Network Link
+      - To link the private DNS zone to a virtual network, you create a virtual network link.
     - Enable auto registration
       - Auto-registers DNS records for VMs in the Linked Virtual Networks
   - Types of Records
@@ -873,6 +905,9 @@
         - Testing:
           - nslookup -type=TXT test.dns.google.com. dns.google.
 - Service Endpoints
+  - A virtual network service endpoint provides the identity of your virtual network to the Azure service. Once service endpoints are enabled in your virtual network, you can secure Azure service resources to your virtual network by adding a virtual network rule to the resources.
+  - Today, Azure service traffic from a virtual network uses public IP addresses as source IP addresses. With service endpoints, service traffic switches to use virtual network private addresses as the source IP addresses when accessing the Azure service from a virtual network.
+  - ![Service Endpoint Addresses](images/service_endpoint_addresses.png)
   - Considerations:
     - Used to access PAAS Services such as Microsoft Storage Accounts
     - Equivalent to interface endpoints and gateway endpoints in AWS (VPC Endpoints)
@@ -890,7 +925,7 @@
     - Decrease attack surface
     - Enables use of NSG rules
   - Under the hood the routes of the NICs are augmented with the new service endpoint access routes
-- Private Endpoints
+- Private Endpoints (Private Link)
   - Private IP that acts as an IP for our connected Azure services usch as Storage Account Files
   - ![Private Endpoints Flow](images/private_endpoints_flow.png)
   - Private endpoints are creating using Azure private link
@@ -916,6 +951,7 @@
       - AAD tenants via Azure roles
       - Azure regions
   - You pay for egress and ingress between VNETs, if it is global between different regions I pay a bit more
+  - Using gateway transit, you can enable on-premises connectivity without deploying virtual network gateways to all your virtual networks. This method can reduce the overall cost and complexity of your network. By using virtual network peering with gateway transit, you can configure a single virtual network as a hub network. Connect this hub network to your on-premises datacenter and share its virtual network gateway with peers.
   - Hub and Spoke
     - Ex:  For V1 and V3 to connect to each other via Hub V2 the following is required:
       - Configure the peering connection in the hub only (v2) to allow gateway transit.
@@ -930,12 +966,17 @@
         - Recommendation is /27
       - Public IP per VNET gateway
       - IPsect tunnel for encryption
+      - Virtual Network Gateway and Local Network Gateway
+      - Shared key (PSK). In this field, enter a shared key for your connection. You can generate or create this key yourself.
     - VPN Gateways provide a limited bandwidth connection and is useful in scenarios where encryption is needed, but bandwidth restrictions are tolerable.
     - Capabilities
       - P2S and S2S capabilities
       - Transitive traffic support
       - ![VPN Gateway Capabilities](images/vpn_gateway_capabilities.png)
       - ![Policy-based vs Route-Based VPN Gateway](images/policy_vs_route_vpn_gateway.png)
+        - Route-based is more advanced
+        - Route-based is also selected when you coexist with an ExpressRoute gateway or if you need to use IKEv2. Policy-based gateways support only IKEv1.
+        - A Point-to-Site (P2S) connection requires a Route-based VPN type.
       - ![VPN Gateway SKUs](images/vpn_gateway_skus.png)
     - Active/Active vs Active/Passive
       - Existing VPN IPSec Tunnel between Vnet Gateway and Local Network Gateway on Prem can have 2 active or 1 active and 1 passive
@@ -978,6 +1019,9 @@
       - Create Local Network Gateway pointing to VPN Device
       - Configure the VPN Device
       - Create the VPN Connection
+    - Terms
+      - IKE
+        - Internet Key Exchange version 2 (IKEv2) is an IPsec based tunneling protocol that provides a secure VPN communication channel between peer VPN devices and defines negotiation and authentication for IPsec security associations (SAs) in a protected manner.
 - Express Route
   - Allows connectivity to both Azure and Microsoft (Ex:  Office 365) Resources using dedicated physical connection
   - Has built-in redundancy with primary and secondary coonnection
@@ -996,6 +1040,8 @@
     4. Create Virtual Network Gateway
        - The Gateway type must be ExpressRoute (the other supported type is VPN) and it must be deployed into a gateway subnet
 - Virtual WAN
+  - Azure Virtual WAN is a networking service that provides optimized and automated branch connectivity to, and through, Azure. Azure regions serve as hubs that you can choose to connect your branches to. You use the Azure backbone to connect branches and enjoy branch-to-VNet connectivity.
+  - The cloud hosted network 'hub' enables transitive connectivity between endpoints that may be distributed across different types of 'spokes'.
   - ![Express Route Components](images/virtual_wan_hub_spoke.png)
   - Networking service that allows a Single Operational Interface to be able to manage a hub-and-spoke style network
   - Manage connections, topologies, firewalls, etc...through same interface
@@ -1028,6 +1074,7 @@
       - Azure Disks, consisting of OS disk, temporary disk and data disk
   - ![VM Family Types](images/vm_family_types.png)
     - HPC:  High-performance Compute
+    - Naming Convention:  `[Family] + [Sub-family]* + [# of vCPUs] + [Additive Features] + [Accelerator Type]* + [Version]`
   - ![VM Components](images/vm_components.png)
   - VM Properties
     - Name
@@ -1035,6 +1082,8 @@
     - Size
     - Image (Linux/Windows)
   - VMs can get initialized using custom [cloud-init](https://cloudinit.readthedocs.io/en/latest/index.html) scripts
+  - The VNet of a VM cannot be changed after it is created.
+  - If you remove a Azure VM, the component dependencies, that is data disks, the os disk, the virtual network interfaces, and diagnostic containers, will remain in the resource group. These items won't be automatically deleted along with your OS disc.
 - Virtual Machine Disks
   - Virtual Hard Disks (VHDs)
     - A file representation of what is found on a hard disk
@@ -1194,22 +1243,31 @@
 - Azure Load Balancer
   - Azure Load Balancer is a networking  solution for distributing traffic between backend compute
   - Layer 4 load balancing (TCP/UDP)
+  - The virtual machines that use a load balancer to distribute a load to must be in the same virtual network.
   - High availability
   - Backend resources must be redundant
   - Components of an Azure Load Balancer
+    - ![Azure Load Balancer Components](images/azure_load_balancer_components.png)
     - Frontend IP
       - Private or public endpoint for accessing the load balancing solution
     - Backend pool
       - Compute solution underlying the load balancer
     - Health Probe
       - Probe that periodically checks the health of the backend pool to determine available nodes
+      - A health probe allows the load balancer to monitor the status of your app. The health probe dynamically adds or removes VMs from the load balancer rotation based on their response to health checks. When a probe fails to respond, the load balancer stops sending new connections to the unhealthy instances.
+      - HTTP custom probe. The load balancer regularly probes your endpoint (every 15 seconds, by default). The instance is healthy if it responds with an HTTP 200 within the timeout period (default of 31 seconds). Any status other than HTTP 200 causes the probe to fail. You can specify the port (Port), the URI for requesting the health status from the backend (URI), amount of time between probe attempts (Interval), and the number of failures that must occur for the instance to be considered unhealthy (Unhealthy threshold).
     - Rules
       - Load balancing or NAT rules configured for allowing inbound/outbound access
+      - A load balancer rule defines how traffic is distributed to the backend pool. The rule maps a given frontend IP and port combination to a set of backend IP addresses and port combination. Before configuring the rule, create the frontend, backend, and health probe.
+      - The load balancer uses a five-tuple (source IP, source port, destination IP, destination port, and protocol type) hash to map traffic to available servers.
     - Type (You can use internal load balancers to balance traffic from private IP addresses. Public load balancers can balance traffic originating from public IP addresses.)
       - Public
       - Internal
+        - Only same Vnet
   - SKUs
     - Standard
+      - You can only use a standard Stock-keeping-Unit (SKU) public IP with Standard Load Balancers. Standard Load Balancers have been designed with security in mind. This means that you need to manually authorize any inbound connection. The Standard SKU public IP address is the only SKU that has this configuration by default.
+      - Standard SKU public IP addresses do not allow inbound communication by default. You need to manually create and assign a network security group (NSG) that allows inbound communication with the standard SKU public IP address.
     - Gateway
       - For third party network virtual appliances
     - Basic
@@ -1219,13 +1277,18 @@
     - ![Azure Load Balancer Takeaways](images/azure_load_balancer_takeaways.png)
 - Application Gateway
   - Azure Application Gateway is a networking service for load balancing between backend compute
+  - ![Multiple Site Routing](images/app_gateway_multi_site_routing.png)
   - Layer 7 load balancing (http/https)
   - URL path-based routing
   - Backend resources must be redundant
   - Backend pool can be composed of:  virtual machines, VMSS (Virtual Machine Scale Sets), App Service
+  - WAF is enabled on your Application Gateway by selecting the WAF tier when you create a gateway.
+  - The Web Application Firewall is an optional component that handles incoming requests before they reach a listener. The Web Application Firewall checks each request for many common threats, based on the Open Web Application Security Project (OWASP).
   - Components:
     - Frontend IP
       - Private or public endpoint for accessing the load balancing solution
+      - You can configure Application Gateway to have a public IP address, a private IP address, or both. 
+      - Application Gateway can't have more than one public and one private IP address.
     - Subnet
     - Backend pool
       - Compute solution underlying the load balancer
@@ -1573,8 +1636,19 @@
     - Unlike crash-consistent backups, application-consistent backups have the ability to see application information both in memory as well as pending I/O operations. Application-consistent backups are able to do this by using VSS writers. We already mentioned how Volume Shadow Copy (VSS) works on a volume level. VSS writers are application-specific components for Microsoft's Volume Shadow Copy Service, which ensure the consistency of application data when a shadow copy is created.
 - PowerShell cmdlets which are required to configure recurring backups using the default backup policy:
   - You should first run the Register-AzResourceProvider cmdlet. This is required the first time you use Azure Backup. This registers the Azure Recovery Service provider in your subscription.
+    - Some resources providers are registered by default for your subscription. To use the other resource providers, you must register them. However, many resource providers are registered for you when you take certain actions. For example, if you create a resource through the portal, the portal automatically registers any unregistered resource providers that are needed. When deploy resources through an Azure Resource Manager template, any required resource providers are also registered.
+    - Exs of resource provider namespaces:
+      - Microsoft.AAD
+      - Microsoft.App
+      - Microsoft.Advisor
+      - Microsoft.RecoveryServices
+    - `Register-AzResourceProvider -ProviderNamespace "Microsoft.RecoveryServices"`
   - You should then run the New-AzRecoveryServicesVault cmdlet to create a Recovery Services vault to store the backups.
+    - `New-AzRecoveryServicesVault -ResourceGroupName "myResourceGroup" -Name "myRecoveryServicesVault" -Location "WestEurope"`
   - Finally, you should run the Enable-AzRecoveryServicesBackupProtection cmdlet to enable backups to run using the default backup policy. Once enabled, backups will run automatically.
+    - `$policy = Get-AzRecoveryServicesBackupProtectionPolicy -Name "DefaultPolicy"`
+    - `Enable-AzRecoveryServicesBackupProtection -ResourceGroupName "myResourceGroup" -Name "myVM" -Policy $policy`
+- While Azure Backup focuses on backups, Azure Site Recovery is more a replication mechanism.
 
 ## Others
 
@@ -1593,6 +1667,9 @@
 - Azure Data Box
   - The Microsoft Azure Data Box cloud solution lets you send terabytes of data into and out of Azure in a quick, inexpensive, and reliable way. The secure data transfer is accelerated by shipping you a proprietary Data Box storage device. Each storage device has a maximum usable storage capacity of 80 TB and is transported to your datacenter through a regional carrier. The device has a rugged casing to protect and secure data during the transit.
   - You can order the Data Box device via the Azure portal to import or export data from Azure. Once the device is received, you can quickly set it up using the local web UI. Depending on whether you will import or export data, copy the data from your servers to the device or from the device to your servers, and ship the device back to Azure.
+- Traffic Manager
+  - Azure Traffic Manager is a DNS-based traffic load balancer. This service allows you to distribute traffic to your public facing applications across the global Azure regions. Traffic Manager also provides your public endpoints with high availability and quick responsiveness.
+  - Traffic Manager uses DNS to direct the client requests to the appropriate service endpoint based on a traffic-routing method. Traffic manager also provides health monitoring for every endpoint. The endpoint can be any Internet-facing service hosted inside or outside of Azure. 
 
 ## TODOs
 - Watch all official videos from Microsoft
@@ -1617,3 +1694,67 @@
     - https://www.youtube.com/watch?v=8fvO3WArG-Y
   - Azure Bastion
     - https://www.youtube.com/watch?v=lZ_u57gJBNo
+- Learning Paths from Microsoft:
+  - https://docs.microsoft.com/en-us/training/paths/az-104-administrator-prerequisites/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-resources-tools/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/use-azure-resource-manager/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-resources-arm-templates/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/automate-azure-tasks-with-powershell/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/control-azure-services-with-cli/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/create-azure-resource-manager-template-vs-code/ (done)
+  - https://docs.microsoft.com/en-us/training/paths/az-104-manage-identities-governance/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-active-directory/
+    - https://docs.microsoft.com/en-us/training/modules/configure-user-group-accounts/
+    - https://docs.microsoft.com/en-us/training/modules/configure-subscriptions/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-policy/
+    - https://docs.microsoft.com/en-us/training/modules/configure-role-based-access-control/
+    - https://docs.microsoft.com/en-us/training/modules/create-users-and-groups-in-azure-active-directory/
+    - https://docs.microsoft.com/en-us/training/modules/secure-azure-resources-with-rbac/
+    - https://docs.microsoft.com/en-us/training/modules/allow-users-reset-their-password/
+  - https://docs.microsoft.com/en-us/training/paths/az-104-manage-storage/
+    - https://docs.microsoft.com/en-us/training/modules/configure-storage-accounts/
+    - https://docs.microsoft.com/en-us/training/modules/configure-blob-storage/
+    - https://docs.microsoft.com/en-us/training/modules/configure-storage-security/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-files-file-sync/ 
+    - https://docs.microsoft.com/en-us/training/modules/configure-storage-tools/
+    - https://docs.microsoft.com/en-us/training/modules/create-azure-storage-account/
+    - https://docs.microsoft.com/en-us/training/modules/control-access-to-azure-storage-with-sas/
+    - https://docs.microsoft.com/en-us/training/modules/upload-download-and-manage-data-with-azure-storage-explorer/
+  - https://docs.microsoft.com/en-us/training/paths/az-104-manage-virtual-networks/
+    - https://docs.microsoft.com/en-us/training/modules/configure-virtual-networks/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-network-security-groups/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-firewall/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-dns/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-vnet-peering/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-vpn-gateway/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-expressroute-virtual-wan/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-network-routing-endpoints/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-load-balancer/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-application-gateway/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/design-ip-addressing-for-azure/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/integrate-vnets-with-vnet-peering/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/host-domain-azure-dns/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/control-network-traffic-flow-with-routes/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/improve-app-scalability-resiliency-with-load-balancer/ (done)
+  - https://docs.microsoft.com/en-us/training/paths/az-104-manage-compute-resources/
+    - https://docs.microsoft.com/en-us/training/modules/configure-virtual-machines/
+    - https://docs.microsoft.com/en-us/training/modules/configure-virtual-machine-availability/
+    - https://docs.microsoft.com/en-us/training/modules/configure-virtual-machine-extensions/
+    - https://docs.microsoft.com/en-us/training/modules/configure-app-service-plans/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-app-services/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-container-instances/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-kubernetes-service/
+    - https://docs.microsoft.com/en-us/training/modules/manage-virtual-machines-with-azure-cli/
+    - https://docs.microsoft.com/en-us/training/modules/create-windows-virtual-machine-in-azure/
+    - https://docs.microsoft.com/en-us/training/modules/host-a-web-app-with-azure-app-service/
+    - https://docs.microsoft.com/en-us/training/modules/protect-vm-settings-with-dsc/
+  - https://docs.microsoft.com/en-us/training/paths/az-104-monitor-backup-resources/
+    - https://docs.microsoft.com/en-us/training/modules/configure-file-folder-backups/
+    - https://docs.microsoft.com/en-us/training/modules/configure-virtual-machine-backups/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-monitor/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-alerts/
+    - https://docs.microsoft.com/en-us/training/modules/configure-log-analytics/
+    - https://docs.microsoft.com/en-us/training/modules/configure-network-watcher/
+    - https://docs.microsoft.com/en-us/training/modules/incident-response-with-alerting-on-azure/
+    - https://docs.microsoft.com/en-us/training/modules/analyze-infrastructure-with-azure-monitor-logs/
+    - https://docs.microsoft.com/en-us/training/modules/monitor-performance-using-azure-monitor-for-vms/
