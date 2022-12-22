@@ -101,13 +101,17 @@
   - Supports 6 levels of hierarchy
   - Root management group is the top-level
   - Root management group access is not given by default
-  - Global Administrators must be elevated to User Access Administrator of root group in order to manage the Root Management Group (not given by default) 
+  - Global Administrators must be elevated to User Access Administrator of root group in order to manage the Root Management Group (not given by default)
   - Management groups and subscriptions can have a single parent
   - Have compliance support
     - Azure Policies
     - Azure role-based access control (RBAC) at various scopes
 - Azure Policies
   - Allow to enforce compliance and enable auditing
+  - Azure Policy evaluates your resources and highlights resources that aren't compliant with the policies you've created. Azure Policy can also prevent noncompliant resources from being created.
+  - Azure Policy comes with built-in policy and initiative definitions for Storage, Networking, Compute, Security Center, and Monitoring.
+  - In some cases, Azure Policy can automatically remediate noncompliant resources and configurations to ensure the integrity of the state of the resources.
+  - Policy assignments are inherited by all child resources within that scope. If a policy is applied to a resource group, that policy is applied to all resources within that resource group. You can exclude a subscope from the policy assignment if there are specific child resources you need to be exempt from the policy assignment.
   - Usage Examples:
     - Prohibit Resources
       - Control Costs
@@ -117,11 +121,13 @@
   - Components of an Azure Policy
     - Policy Definition
       - Defines the evaluation criteria for compliance, and defines the actions that take place.  Either audit or deny should something be outside of compliance
+      - You can create your own policy definitions, or choose from built-in definitions in Azure Policy. You can create a policy definition to prevent VMs in your organization from being deployed, if they're exposed to a public IP address.
     - Policy Assignment
       - The scope at which we will assign our policy.  The scope could be a management group, subscription, resource group or resource
       - You can also attach exclusions as part of the Scope.
     - Initiative Definition
       - A collection of policies that are tailored to achieving a singular high-level goal together.  For example, ensuring that VMs meet standards.
+      - Azure Policy lets you control how your initiative definitions are applied to resources in your organization. You can limit the scope of an initiative definition to specific management groups, subscriptions, or resource groups.
   - Examples:
     - [Allowed locations built-in policy](code_samples/example_built_in_allowed_locations_policy.json)
 - Tagging Resources
@@ -150,6 +156,8 @@
         >> --tags project=az104
         ```
 
+    - You can also manage tags by using Azure Policy. For example, you can apply tags to a resource group, but those tags aren't automatically applied to the resources within that resource group. You can use Azure Policy to ensure that a resource inherits the same tags as its parent resource group.
+
 - Locking and Moving Resources
   - What are Locks
     - You can lock an Azure subscription, resource group, or resource to protect them from accidental user deletions and modifications
@@ -175,6 +183,7 @@
       - Azure Active Directory Domain Services
       - Azure Backup Vaults
       - Azure App Service Gateways
+    - You cannot move app service resources to a RG that already contains web resources
 - Managing Azure Costs
   - What affects cost
     - Subscription Type
@@ -227,6 +236,7 @@
   - Resource Groups can have resources from many different regions.
   - All the resources in your group should share the same lifecycle. You deploy, update, and delete them together. If one resource, such as a database server, needs to exist on a different deployment cycle it should be in another resource group.
   - A resource can interact with resources in other resource groups. This interaction is common when the two resources are related but don't share the same lifecycle (for example, web apps connecting to a database).
+  - When you delete a resource group, you also delete its child resources.
 
 ## Identity
 
@@ -236,6 +246,7 @@
       - An unauthenticated entity that will seek to authenticate as an identity
     - Identity
       - An identity profile that is authenticated against using credentials
+      - An identity is an object that can be authenticated. The identity can be a user with a username and password. Identities can also be applications or other servers that require authentication by using secret keys or certificates. Azure AD is the underlying product that provides the identity service.
     - Authorizations
       - Actions that are permitted/prohibited for an identity to perform
   - Service Principal Object
@@ -294,6 +305,7 @@
     - Premium P2
   - Active Directory vs Azure AD
     - Active Directory
+      - Active Directory Domain Services (AD DS) is the traditional deployment of Windows Server-based Active Directory on a physical or virtual server. AD DS is commonly considered to be primarily a directory service, but it's only one component of the Windows Active Directory suite of technologies. The suite also includes Active Directory Certificate Services (AD CS), Active Directory Lightweight Directory Services (AD LS), Active Directory Federation Services (AD FS), and Active Directory Rights Management Services (AD RMS).
       - Organization Units (OUs)
       - Group Policy Objects (GPOs)
       - Kerberos, LDAP, NTLM
@@ -309,6 +321,13 @@
   - SSPR:  Self-Service Password Reset
   - ![Designing Tenants](images/designing_tenants.png)
 - Creating and Managing Users
+  - Types of User Acccounts
+    - Cloud Identity
+      - A user account with a cloud identity is defined only in Azure AD.
+    - Directory-synchronized Identity
+      - User accounts that have a directory-synchronized identity are defined in an on-premises Active Directory. A synchronization activity occurs via Azure AD Connect to bring these user accounts in to Azure. 
+    - Guest User
+      - Guest user accounts are defined outside Azure. Examples include user accounts from other cloud providers, and Microsoft accounts like an Xbox LIVE account.
   - Types of Users
     - Administrators
       - Users with an administrator role assigned
@@ -352,6 +371,8 @@
   - Give us ability to create a scope where we can contain our users and our groups
   - Helps break the spawn of control
 - Configuring SSPR (Self-Service Password Reset)
+  - All Azure AD editions support SSPR.
+  - SSPR requires an Azure AD account with Global Administrator privileges to manage SSPR options. This account can always reset their own passwords, no matter what options are configured.
   - Enables users to reset their own passwords
   - Can be enabled for ALL users, Selected Groups or None
   - Process:  Localization-->Verification-->Authentication-->Password Reset-->Notification
@@ -369,16 +390,23 @@
     - Admins cannot use security questions and must register for MFA methods
     - P1 or P2 Microsoft Apps for Business license or Microsoft 365 licensing required for SSPR
 - Azure AD Device Management
+  - Azure Active Directory Join
+    - The Azure AD join feature works with SSO to provide access to organizational apps and resources, and to simplify Windows deployments of work-owned devices.
   - Options to register devices
     - Azure AD Registered
       - Least restrictive option
       - Allows BYOD with personal Microsoft or local account
+        - For BYOD, Azure AD gives us Azure AD registration. An Azure AD-registered device is "lightly managed" by Azure AD admins. Users here can sign in to their device by using either a local device ID (for instance, their Apple account on an iOS device) or their Azure AD identity.
       - Supports Windows 10, iOS, iPadOS, Android, macOS
+      - While Azure AD Premium gives Azure AD registered or joined devices SSO to your cloud apps, you'll need a first- or third-party mobile device management (MDM) product to enforce policies such as data encryption, remote wipe, and so on.
+        - Microsoft's primary MDM tool is Microsoft Intune. Intune is part of a larger Microsoft MDM platform called Microsoft Endpoint Manager.
     - Azure AD Joined
+      - Azure AD join is your option for the corporate owned, personally enabled (COPE) endpoint device scenario. Because the endpoint is corporate owned, you can enforce policy that wouldn't work with personally owned devices.
       - Device is Owned by organization
       - Accesses AAD through a work account
       - Identities only exist in the cloud
       - Supports Windows 10 and Server 2019
+      - Sample scenario:  your users want too sign-in to devices, apps, and services from anywhere
     - Hybrid Azure AD Joined
       - Similar to AAD joined however device identities exist both on-premises and in the cloud
       - Supports Windows 7, 8.1, 10 and server 2008 or later
@@ -397,11 +425,14 @@
 
 - Understanding Roles in Azure
   - RBAC is an authorization system for providing access based on roles that are asigned to users
+  - RBAC uses an allow model
   - Components
     - Security Principals
+      - An object that represents something that requests access to resources.
       - The WHO in RBAC
       - Ex:  Users in Azure AD
     - Roles
+      - A set of permissions that lists the allowed operations. Azure RBAC comes with built-in role definitions, but you can also create your own custom role definitions.
       - The WHAT in RBAC
       - Role definitions define what actions are allowed
       - Supports both Allow (Actions) and Deny (Not Actions)
@@ -409,6 +440,8 @@
     - Scope
       - The WHERE in RBAC
       - Where can the actions be performed (Management Groups, Subscriptions, Resources)
+    - Assignment
+      - An assignment attaches a role definition to a security principal at a particular scope. Users can grant the access described in a role definition by creating (attaching) an assignment for the role.
   - The binding sauce is the `Role Assignment`
   - 2 types of Roles:
     - Azure Roles
@@ -416,13 +449,17 @@
       - Permissions have a waterfall effect
       - Built-in roles:
         - Owner
+          - Full rights to change the resource and to change the access control to grant permissions to other users.
           - Full access to resources and delegated access
+          - The Owner built-in role has the highest level of access privilege in Azure.
         - Reader
           - Can only view resources
         - Contributor
           - Create and Manage resources
+          - Full rights to change the resource, but not able to change the access control.
         - User Access Administrator
           - Delegate access to resources to other users
+          - No access to the resource except the ability to change the access control.
       - Manage access to Azure resources
       - Scope can be at multiple levels
       - Supports custom roles
@@ -432,8 +469,13 @@
       - Supports custom roles
       - Built-in roles:
         - Global Administrator
+          - The highest level of access, including the ability to grant administrator access to other users and to reset other administrator’s passwords
         - User Administrator
+          - Can create and manage users and groups, and can reset passwords for users, Helpdesk administrators and User administrators.
         - Billing Administrator
+          - Can make purchases and manage subscriptions.
+        - Helpdesk administrator
+          - Can change the password for users who don’t have an administrator role and they can invalidate refresh tokens, which forces users to sign back in again.
 - Assigning Access to Resources
   - ![Role Definition Parts](images/role_definition_parts.png)
 - Creating Custom Roles
@@ -460,6 +502,16 @@
           ]
       }
       ```
+
+    - Actions permissions identify what actions are allowed.
+    - NotActions permissions specify what actions aren't allowed.
+    - DataActions permissions indicate how data can be changed or used.
+    - AssignableScopes permissions list the scopes where a role definition can be assigned.
+    - Scope examples:
+      - Scope a role as available for assignment only in the Network resource group:
+        - "/subscriptions/c276fc76-9cd4-44c9-99a7-4fd71546436e/resourceGroups/Network"
+      - Scope a role as available for assignment in two subscriptions:
+        - "/subscriptions/c276fc76-9cd4-44c9-99a7-4fd71546436e", "/subscriptions/e91d47c4-76f3-4271-a796-21b4ecfe3624"
 
 ## Storage Accounts
 
@@ -503,6 +555,8 @@
             - There is no data loss associated with a live migration.
             - Service endpoints, access keys, shared access signatures, and other account options remain unchanged after the migration.
           - Use the Azure Portal, powershell, or Azurel CLI to change the replication setting for a storage account
+        - ![Storage Account Type Conversions](images/supported_conversions_between_account_types.png)
+      - You should always choose General-purpose V2 as your account type/kind as it supports Zone-redundant storage (ZRS). Microsoft recommends that you use the General-purpose v2 option for new storage accounts.  (Storage V1 and Blob Storage are legacy options)
     - Access Tier
       - Determines access levels and data costs
         - Options:
@@ -616,7 +670,7 @@
   - Storage Access Options
     - Public Endpoint
       - All services are public by default using the service's public endpoint URL
-      - syntax of URL:  https://<accountName>.<subService>.core.windows.net/<resourceName>
+      - syntax of URL:  https://{accountName}.{subService}.core.windows.net/{resourceName}
     - Restricted Access
       - Storage account access can be restricted to virtual networks, IP address ranges via the storage account's firewall, and via specific resource instances
     - Private endpoints
@@ -649,29 +703,78 @@
         - HDD
         - SSD
   - Azure Import Job (With both Blobs and Files)
-    1. Prepare Disks (WAImportExport)
-    2. Create Job
-    3. Ship Drives
-    4. Check job status
-    5. Receive disks
-    6. Check data in Azure Storage
+    1. Determine data to be imported, number of drives you need, destination blob location for your data in Azure storage.
+    2. Use the WAImportExport tool to copy data to disk drives. Encrypt the disk drives with BitLocker.
+        - For Blob:
+          - ./WAImportExport.exe PrepImport /j:<journal file name> /id:session<session number> /t:<Drive letter> /bk:<BitLocker key> /srcdir:<Drive letter>:\ /dstdir:<Container name>/ /blobtype:<BlockBlob or PageBlob> /skipwrite
+            - A journal file is created in the same folder where you ran the tool. Two other files are also created - an .xml file (folder where you run the tool) and a drive-manifest.xml file (folder where data resides).
+          - A journal file is created in the same folder where you ran the tool. Two other files are also created - an .xml file (folder where you run the tool) and a drive-manifest.xml file (folder where data resides).
+        - For Azure Files
+          - Modify the dataset.csv file in the root folder where the tool is. Depending on whether you want to import a file or folder or both, add entries in the dataset.csv file similar to the following examples.
+          - To import a file: In the following example, the data to copy is on the F: drive. Your file MyFile1.txt is copied to the root of the MyAzureFileshare1. If the MyAzureFileshare1 does not exist, it's created in the Azure Storage account. Folder structure is maintained.
+
+          ```csv
+          BasePath,DstItemPathOrPrefix,ItemType
+          "F:\MyFolder1\MyFile1.txt","MyAzureFileshare1/MyFile1.txt",file
+          ```
+
+          - To import a folder: All files and folders under MyFolder2 are recursively copied to the fileshare. Folder structure is maintained. If you import a file with the same name as an existing file in the destination folder, the imported file will overwrite that file.
+
+          ```csv
+          "F:\MyFolder2\","MyAzureFileshare1/",file
+          ```
+
+          - Multiple entries can be made in the same file corresponding to folders or files that are imported.
+          - Modify the driveset.csv file in the root folder where the tool is. Add entries in the driveset.csv file similar to the following examples. The driveset file has the list of disks and corresponding drive letters so that the tool can correctly pick the list of disks to be prepared.
+
+          ```csv
+          DriveLetter,FormatOption,SilentOrPromptOnFormat,Encryption,ExistingBitLockerKey
+          H,Format,SilentMode,Encrypt,
+          G,AlreadyFormatted,SilentMode,AlreadyEncrypted,060456-014509-132033-080300-252615-584177-672089-411631
+          ```
+
+    3. Create an import job in your target storage account in Azure portal. Upload the drive journal files.
+    4. Provide the return address and carrier account number for shipping the drives back to you.
+    5. Ship the disk drives to the shipping address provided during job creation.
+    6. Update the delivery tracking number in the import job details and submit the import job.
+    7. The drives are received and processed at the Azure data center.
+    8. The drives are shipped using your carrier account to the return address provided in the import job.
   - Azure Export Job (only with Blobs)
-    1. Create job
-    2. Ship drives (WAImportExport)
-    3. Check job status
-    4. Receive and unlock disks
+    1. Determine the data to be exported, number of drives you need, source blobs or container paths of your data in Blob storage.
+    2. Create an export job in your source storage account in Azure portal.
+    3. Specify source blobs or container paths for the data to be exported.
+    4. Provide the return address and carrier account number for shipping the drives back to you.
+    5. Ship the disk drives to the shipping address provided during job creation.
+    6. Update the delivery tracking number in the export job details and submit the export job.
+    7. The drives are received and processed at the Azure data center.
+    8. The drives are encrypted with BitLocker and the keys are available via the Azure portal.
+    9. The drives are shipped using your carrier account to the return address provided in the import job.1.
   - Appears under Import/Export jobs option in the Azure portal
   - Import/Export tool is only supported on Windows devices
   - WAImportExportCLI Tool
     - Used to prepare disks for data and to estimate number of disks needed
+    - Only compatible with 64 bit Windows
 - Storage Utilities
   - Storage Explorer
     - A Graphical User Interface (GUI) tool for working with storage accounts.  Supported for Windows, Linux, and MacOS
   - AzCopy
-    - A Command-line utility for working with storage accounts.  Supported for Windows, Linux, and MacOS
+    - AzCopy is a command-line utility that you can use to copy blobs or files to or from a storage account.  
+    - Supported for Windows, Linux, and MacOS
     - Has scripting capabilities
     - You can provide authorization credentials by using Azure Active Directory (AD), or by using a Shared Access Signature (SAS) token.
+    - AD option is available for blob Storage only.
     - ![AzCopy supported Authorizations](images/az_copy_supported_authorizations.png)
+    - azcopy copy [source] [destination] [flags]
+      - Example using SAS tokens (command recursively copies data from a local directory to a blob container):
+        - azcopy copy "C:\local\path" "https://account.blob.core.windows.net/mycontainer1/?sv=2018-03-28&ss=bjqt&srt=sco&sp=rwddgcup&se=2019-05-01T05:01:17Z&st=2019-04-30T21:01:17Z&spr=https&sig=MGCXiyEzbtttkr3ewJIh2AR8KrghSy1DGM9ovN734bQF4%3D" --recursive=true
+    - azcopy make [resourceURL] [flags]
+      - azcopy make "https://[account-name].[blob,file,dfs].core.windows.net/[top-level-resource-name]"
+    - azcopy remove [resourceURL] [flags]
+      - azcopy rm "https://[account].blob.core.windows.net/[container]/[path/to/directory]?[SAS]" --recursive=true
+    - azcopy sync [flags]
+      - azcopy sync "/path/to/file.txt" "https://[account].blob.core.windows.net/[container]/[path/to/blob]" --put-md5
+- Azure Import/Export service allows data transfer into Azure Blobs and Azure Files by creating jobs. Use the Azure portal or Azure Resource Manager REST API to create jobs. Each job is associated with a single storage account. This service only supports export of Azure Blobs. Export of Azure files is not supported.
+- The jobs can be import or export jobs. An import job allows you to import data into Azure Blobs or Azure files, whereas the export job allows data to be exported from Azure Blobs. For an import job, you ship drives containing your data. When you create an export job, you ship empty drives to an Azure datacenter. In each case, you can ship up to 10 disk drives per job.
 
 ## Virtual Networking
 
@@ -744,6 +847,8 @@
       - IP COnfigurations
         - Private IP
         - Public IP (Optional)
+      - A NIC can be associated to a VM with another NIC as long as both NIC and VM are in same region
+        - When moving NICs it doesn't matter if the Resourcee Group to which they beelong is in another region
 - Routing Virtual Networks
   - Routes=Paths for Connectivity (Routes are paths through which traffic can flow)
   - Each route table can be associated to multiple subnets, but a subnet can only be associated to a single route table.
@@ -847,6 +952,8 @@
       - The DNS ‘start of authority’ (SOA) record stores important information about a domain or zone such as the email address of the administrator, when the domain was last updated, and how long the server should wait between refreshes.
       - All DNS zones need an SOA record in order to conform to IETF standards.
       - The SOA record is created automatically for the top-level zone and is deleted if the zone is deleted.
+  - Delegation of DNS zones
+    - Azure DNS allows you to host a DNS zone and manage the DNS records for a domain in Azure. In order for DNS queries for a domain to reach Azure DNS, the domain has to be delegated to Azure DNS from the parent domain. Keep in mind Azure DNS isn't the domain registrar.
 - Azure Firewall
   - Platform as a service firewall
   - Fully qualified domain name (FQDN) support
@@ -985,6 +1092,10 @@
       - Specific object that represents your on-premises location (the site) for routing purposes.
       - Requires the IP address of FQDN of the on-premises VPN device to which you'll create a connection
       - Requires one or more IP address ranges (in CIDR notation) that define your local network's address space.
+    - Virtual Network Gateway
+      - Can be of type:  VPN or ExpressRoute
+      - Uses specific subnet called the gateway subnet. The gateway subnet is part of the virtual network IP address range that you specify when configuring your virtual network. It contains the IP addresses that the virtual network gateway resources and services use.
+      - The number of IP addresses needed depends on the VPN gateway configuration that you want to create. Some configurations require more IP addresses than others. We recommend that you create a gateway subnet that uses a /27 or /28.
     - Connectivity Options
       - VNet-to-Vnet
       - Site-to-Site
@@ -997,7 +1108,7 @@
       2. Deploy a gateway subnet
          - All gateway subnets must be named ‘GatewaySubnet’ to work properly
          - It is recommended that you create a gateway subnet that uses a /27 or /28.
-      3. Deploy a VPN Gateway
+      3. Deploy a VPN Gateway (Virtual Network Gateway)
       4. Deploy a local network gateway
          - The local network gateway is a specific object that represents your on-premises location (the site) for routing purposes.
       5. Deploy a VPN connection
@@ -1075,6 +1186,21 @@
   - ![VM Family Types](images/vm_family_types.png)
     - HPC:  High-performance Compute
     - Naming Convention:  `[Family] + [Sub-family]* + [# of vCPUs] + [Additive Features] + [Accelerator Type]* + [Version]`
+      - Examples:
+        - M416ms_v2
+          - Family: M
+          - No. of vcpus: 416
+          - Additive Features:  m-->memory intensive, s-->premium storage
+          - version: v2
+        - NV16as_v4
+        - NC4as_T4_v3
+          - Sub-family: C
+          - No. of vcpus: 4
+          - Additive Features:  a-->AMD-based processor, s-->premium storage
+          - Accelerator Type:  T4
+        - M8-2ms_v2
+          - No. of vcpus: 8
+          - No. of constrained (actual) vcpus: 2
   - ![VM Components](images/vm_components.png)
   - VM Properties
     - Name
@@ -1083,7 +1209,9 @@
     - Image (Linux/Windows)
   - VMs can get initialized using custom [cloud-init](https://cloudinit.readthedocs.io/en/latest/index.html) scripts
   - The VNet of a VM cannot be changed after it is created.
-  - If you remove a Azure VM, the component dependencies, that is data disks, the os disk, the virtual network interfaces, and diagnostic containers, will remain in the resource group. These items won't be automatically deleted along with your OS disc.
+  - If you remove an Azure VM, the component dependencies, that is data disks, the os disk, the virtual network interfaces, and diagnostic containers, will remain in the resource group. These items won't be automatically deleted along with your OS disc.
+  - If the virtual machine is in a running state, the detach network interface option in the networking settings is greyed out. You need to stop the virtual machine first before you can detach/attach a network interface.
+  - If the virtual machine is currently running, changing its size will cause it to be restarted and will result in system downtime
 - Virtual Machine Disks
   - Virtual Hard Disks (VHDs)
     - A file representation of what is found on a hard disk
@@ -1100,6 +1228,7 @@
       - OS tools like BitLocker and DM-Crypt
   - Managed vs Unmanaged Disks
     - ![Managed vs Unmanaged Disks](images/managed_vs_unmanaged_disks.png)
+    - Unmanaged disk is something which requires you to create a storage account before you create any new disk. Since, the storage account is created and owned by you, you have full control over all the data that is present on your storage account. Additionally, you also need to take care of encryption, data recovery plans etc.
   - Major disk types
     - ![Major Disk Types](images/major_disk_types.png)
   - VM disks
@@ -1120,6 +1249,7 @@
       - Logical grouping of infrastructure for maintenance/updates
       - Max: 20
     - If you want more than 1 Update Domain then Fault Domain has to be > 1
+      - Ex:  For 3 update domains you need 2 fault domains
     - Implementation
       1. Create availability set resource
       2. In order to put a VM inside of an Availability Set it must be done upon creation, to add an existing VM you'll have to delete it and recreate it to put into an Availability Set
@@ -1127,6 +1257,7 @@
   - Proximity Placement Group
     - Logical grouping used to make sure that Azure compute resources are physically located close to each other
     - Useful for workloads where low latency is a requirement.
+    - When you are configuring a proximity placement group for a virtual machine scale set, both the placement group and scale set must be in the same region.
   - Scale Sets
     - Purpose
       - Simplify scaling configurations
@@ -1237,6 +1368,10 @@
     1. Create a subnet named AzureBastionSubnet and an address range of 10.2.1.0/26.
     2. Create a bastion and assign the existing, relevant subnet.
     3. Connect to vm using the Azure portal in a web browser (Azure Bastion can only provide RDP access to VMs by using a web browser.)
+- Azure virtual machine extensions and features
+  - Extensions are small applications that provide post-deployment configuration and automation on Azure VMs. The Azure platform hosts many extensions covering VM configuration, monitoring, security, and utility applications. Publishers take an application, wrap it into an extension, and simplify the installation. All you need to do is provide mandatory parameters.
+  - Azure Custom Script Extension Version 2 with Linux virtual machines
+    - The Custom Script Extension Version 2 downloads and runs scripts on Azure virtual machines (VMs). This extension is useful for post-deployment configuration, software installation, or any other configuration or management task. You can download scripts from Azure Storage or another accessible internet location, or you can provide them to the extension runtime.
 
 ## Network Traffic Management
 
@@ -1268,11 +1403,13 @@
     - Standard
       - You can only use a standard Stock-keeping-Unit (SKU) public IP with Standard Load Balancers. Standard Load Balancers have been designed with security in mind. This means that you need to manually authorize any inbound connection. The Standard SKU public IP address is the only SKU that has this configuration by default.
       - Standard SKU public IP addresses do not allow inbound communication by default. You need to manually create and assign a network security group (NSG) that allows inbound communication with the standard SKU public IP address.
+      - VMs have to be created in the same VNet
     - Gateway
       - For third party network virtual appliances
     - Basic
       - For non prod
       - Does not support https
+      - VMs have to be created in the same availability set or VM scale set
   - Takeaways:
     - ![Azure Load Balancer Takeaways](images/azure_load_balancer_takeaways.png)
 - Application Gateway
@@ -1334,6 +1471,7 @@
   - Equivalent to AWS Beanstalk
   - You can choose operating system where you want your app service to run
 - Web App Service
+  - An App Service plan can only be associated with a web app located in the same region.
   - Features
     - Managed Infrastructure
       - No need to patch, maintain, implement, or configure underlying infrastructure components with this PaaS
@@ -1367,6 +1505,7 @@
   - Configuration Options
     - Custom Domain
       - Provide a custom domain to be used by the web application
+      - ![Register a Custom Domain with your Web App](images/register_custom_domain_app_service.png)
     - Scaling
       - Specify scaling options to scale up/scale out compute resources for your web apps
       - Scale Up:  Change service plan (pricing tier and compute type) to provide more compute resources
@@ -1607,6 +1746,7 @@
     - Azure backup is a managed service for backing up and recovering workloads
     - Requires an Azure Recovery Services vault
       - A Recovery Services vault is an entity that stores the backups and recovery points created over time for a particular Region only.
+      - The backed-up resources have to be in the same region as the vault
     - Supported workloads:
       - Azure virtual machines
       - On-premises machines
@@ -1617,6 +1757,8 @@
     - ![Azure Backup Components](images/azure_backup_components.png)
   - Notes
     - Scheduled backups still run even if you shut down the virtual machine.
+    - When creating a backup, you need to ensure that the virtual machines are in the same region as the Recovery Services vault.
+    - The VM in a stopped/deallocated state only stops the virtual machine. Take note that Azure Backup only takes snapshots of the VM disks. This means that even if the VM status is running or stopped, you can still create a backup as long as the disk is attached to the VM.
 - Azure Site Recovery
   - Description
     - Azure Site Recovery service provides a solution for automating disaster recovery
@@ -1656,6 +1798,7 @@
   - Azure Key Vault is a cloud service for securely storing and accessing secrets. A secret is anything that you want to tightly control access to, such as API keys, passwords, certificates, or cryptographic keys. Key Vault service supports two types of containers: vaults and managed HSM pools. Vaults support storing software and HSM-backed keys, secrets, and certificates. Managed HSM pools only support HSM-backed keys.
 - Verify a Domain in Azure
   - You can verify your custom domain name by using TXT or MX record types.
+- You can use the ARM template to retrieve a password in Azure Key Vault. Instead of putting a secure value (like a password) directly in your template or parameter file, you can retrieve the value from an Azure Key Vault during deployment. You retrieve the value by referencing the key vault and secret in your parameter file. The value is never exposed because you only reference its key vault ID.
 - CDN
   - Azure Content Delivery Network (CDN) offers developers a global solution for rapidly delivering high-bandwidth content to users by caching their content at strategically placed physical nodes across the world. Azure CDN can also accelerate dynamic content, which cannot be cached, by leveraging various network optimizations using CDN POPs (Points of Presence). For example, route optimization to bypass Border Gateway Protocol (BGP).
 - Some ports definitions
@@ -1677,7 +1820,9 @@
 - Watch specialized videos from John Savill
 
 ## References
-
+- Book exams for free leveraging partnership between Slalom and Microsoft
+  - https://esi.microsoft.com/
+  - https://esi.microsoft.com/getcertification
 - https://docs.microsoft.com/en-us/certifications/azure-administrator/
 - https://docs.microsoft.com/en-us/shows/exam-readiness-zone/preparing-for-az-104-manage-azure-identities-and-governance-1-of-5
 - https://www.youtube.com/watch?v=VOod_VNgdJk
@@ -1703,14 +1848,16 @@
     - https://docs.microsoft.com/en-us/training/modules/control-azure-services-with-cli/ (done)
     - https://docs.microsoft.com/en-us/training/modules/create-azure-resource-manager-template-vs-code/ (done)
   - https://docs.microsoft.com/en-us/training/paths/az-104-manage-identities-governance/
-    - https://docs.microsoft.com/en-us/training/modules/configure-azure-active-directory/
-    - https://docs.microsoft.com/en-us/training/modules/configure-user-group-accounts/
-    - https://docs.microsoft.com/en-us/training/modules/configure-subscriptions/
-    - https://docs.microsoft.com/en-us/training/modules/configure-azure-policy/
-    - https://docs.microsoft.com/en-us/training/modules/configure-role-based-access-control/
-    - https://docs.microsoft.com/en-us/training/modules/create-users-and-groups-in-azure-active-directory/
-    - https://docs.microsoft.com/en-us/training/modules/secure-azure-resources-with-rbac/
-    - https://docs.microsoft.com/en-us/training/modules/allow-users-reset-their-password/
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-active-directory/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-user-group-accounts/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-subscriptions/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-azure-policy/ (done)
+      - Hands-on
+      - https://docs.microsoft.com/en-us/training/modules/build-cloud-governance-strategy-azure/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/configure-role-based-access-control/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/create-users-and-groups-in-azure-active-directory/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/secure-azure-resources-with-rbac/ (done)
+    - https://docs.microsoft.com/en-us/training/modules/allow-users-reset-their-password/ (done)
   - https://docs.microsoft.com/en-us/training/paths/az-104-manage-storage/
     - https://docs.microsoft.com/en-us/training/modules/configure-storage-accounts/
     - https://docs.microsoft.com/en-us/training/modules/configure-blob-storage/
@@ -1737,7 +1884,7 @@
     - https://docs.microsoft.com/en-us/training/modules/control-network-traffic-flow-with-routes/ (done)
     - https://docs.microsoft.com/en-us/training/modules/improve-app-scalability-resiliency-with-load-balancer/ (done)
   - https://docs.microsoft.com/en-us/training/paths/az-104-manage-compute-resources/
-    - https://docs.microsoft.com/en-us/training/modules/configure-virtual-machines/
+    - https://docs.microsoft.com/en-us/training/modules/configure-virtual-machines/ (done)
     - https://docs.microsoft.com/en-us/training/modules/configure-virtual-machine-availability/
     - https://docs.microsoft.com/en-us/training/modules/configure-virtual-machine-extensions/
     - https://docs.microsoft.com/en-us/training/modules/configure-app-service-plans/
@@ -1749,7 +1896,7 @@
     - https://docs.microsoft.com/en-us/training/modules/host-a-web-app-with-azure-app-service/
     - https://docs.microsoft.com/en-us/training/modules/protect-vm-settings-with-dsc/
   - https://docs.microsoft.com/en-us/training/paths/az-104-monitor-backup-resources/
-    - https://docs.microsoft.com/en-us/training/modules/configure-file-folder-backups/
+    - https://docs.microsoft.com/en-us/training/modules/configure-file-folder-backups/ (done)
     - https://docs.microsoft.com/en-us/training/modules/configure-virtual-machine-backups/
     - https://docs.microsoft.com/en-us/training/modules/configure-azure-monitor/
     - https://docs.microsoft.com/en-us/training/modules/configure-azure-alerts/
@@ -1758,3 +1905,123 @@
     - https://docs.microsoft.com/en-us/training/modules/incident-response-with-alerting-on-azure/
     - https://docs.microsoft.com/en-us/training/modules/analyze-infrastructure-with-azure-monitor-logs/
     - https://docs.microsoft.com/en-us/training/modules/monitor-performance-using-azure-monitor-for-vms/
+- Sample exam questions explained
+  - https://www.youtube.com/watch?v=rr74T-HgqzI
+  - Tips and Tricks by Eydiea (https://www.youtube.com/user/nb4ic89not/videos)
+  - https://www.youtube.com/watch?v=wYUhumwOGrM (part 1) (done)
+  - https://www.youtube.com/watch?v=W9wV1B9z_UU (part 2) (done)
+  - https://www.youtube.com/watch?v=suwuWLMYSa8 (part 3) (done)
+  - https://www.youtube.com/watch?v=9eapI0XV4d4 (part 6)
+  - https://www.youtube.com/watch?v=0R8SNJrw86c (part 7)
+  - https://www.youtube.com/watch?v=evZCO2YtxJg (part 12)
+  - https://www.youtube.com/watch?v=NiyzbfJQY3E&t=96s
+  - https://www.youtube.com/watch?v=tc8xkulXydE (part 21)
+  - https://www.youtube.com/watch?v=Wrd5VJHACO4 (part 23)
+  - https://www.youtube.com/watch?v=PUbdseFo46U (part 24)
+  - https://www.youtube.com/watch?v=x_apZkmpr_o (part 25)
+  - https://www.youtube.com/watch?v=cMqDvvADjc0 (part 26)
+  - https://www.youtube.com/watch?v=xVrwmxByABU (patrt 29)
+  - https://www.youtube.com/watch?v=gexlIH2nOG4 (part 30)
+- Very complete AZ-104 sample questions and answers explained
+  - https://www.youtube.com/watch?v=QGZWqYIpOMw&t=1355s
+- AZ-104 certification exam review questions and answers
+  - https://www.youtube.com/watch?v=rr74T-HgqzI&t=2268s
+- Microsoft Interactive Lab Simulations (22 exercises for Azure Fundamentals):
+  - https://microsoftlearning.github.io/AZ-104-MicrosoftAzureAdministrator/
+  - Create a VM with a Template:
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%209
+  - Implement Azure Functions
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%208
+  - Implement an Azure IoT Hub
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%207
+  - Create a SQL Database
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%206
+  - Create Blob Storage
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%205
+  - Create a Virtual Network
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%204
+  - Deploy Azure Container Instances
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%203
+  - Create a Web App
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%202
+  - Create a VM in the Portal
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%201
+  - Create a VM with PowerShell
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2010
+  - Create a VM with the CLI
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2011
+  - Implement Azure Key Vault
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2012
+  - Secure Network Traffic
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2013
+  - Manage Access with RBAC
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2014
+  - Manage Resource Locks
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2015
+  - Implement Resource Tagging
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2016
+  - Create an Azure Policy
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2017
+  - Explore Microsoft Compliance Offerings
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2018
+  - Use the Pricing Calculator
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2019
+  - Use the Azure TCO Calculator
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2020
+  - Calculate Composite SLAs
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2021
+  - Open a Support Request
+    - https://mslearn.cloudguides.com/en-us/guides/AZ-900%20Exam%20Guide%20-%20Azure%20Fundamentals%20Exercise%2022
+  - Manage Azure Active Directory Identities
+    - https://mslabs.cloudguides.com/en-us/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%201
+  - Manage subcription and RBAC
+    - https://mslabs.cloudguides.com/en-us/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%202
+  - Manage Governance via Azure Policy
+    - https://mslabs.cloudguides.com/en-us/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%203
+  - Manage Azure resources by using the Azure Portal
+    - https://mslabs.cloudguides.com/en-us/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%204
+  - Manage Azure ressources by using Azure Resource Manager Templates
+    - https://mslabs.cloudguides.com/en-us/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%205
+  - Manage Azure Resources by using Azure PowerShell
+    - https://mslabs.cloudguides.com/en-us/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%206
+  - Manage Azure Resources by using Azure CLI
+    - https://mslabs.cloudguides.com/en-us/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%207
+  - Implement Virtual Networking
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%208 (watched)
+  - Implement Inter-site connectivity
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%209
+  - Implement Traffic Management
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%2010
+  - Manage Azure Storage
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%2011
+  - Manage Virtual Machines
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%2012
+  - Implement Azure Web Apps
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%2013
+  - Implement Azure Container Instances
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%2014
+  - Implement Azure Kubernetes Service
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%2015
+  - Backup virtual machines
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%2016
+  - Implement Monitoring
+    - https://mslabs.cloudguides.com/guides/AZ-104%20Exam%20Guide%20-%20Microsoft%20Azure%20Administrator%20Exercise%2017
+- Good specialized area tutorials
+  - Azure Load Balancer Tutorial
+    - https://www.youtube.com/watch?v=T7XU6Lz8lJw&t=40s
+  - Azure Active Directory (AD, AAD) Tutorial | Identity and Access Management Service
+    - https://www.youtube.com/watch?v=Ma7VAQE7ga4&list=PLGjZwEtPN7j-c0vzM9RPTGShYi8exVFZv
+
+## Cheat Sheets from Tutorials Dojo
+
+- https://tutorialsdojo.com/azure-blob-storage/
+- https://tutorialsdojo.com/azure-file-storage/
+- https://tutorialsdojo.com/azure-storage-overview/
+- https://tutorialsdojo.com/azure-load-balancer/
+- https://tutorialsdojo.com/azure-app-service/
+- https://tutorialsdojo.com/azure-virtual-machines/
+- https://tutorialsdojo.com/azure-vpn-gateway/
+
+
+Tracking on questions:
+2:15
