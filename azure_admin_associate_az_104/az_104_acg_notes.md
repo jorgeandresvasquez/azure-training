@@ -420,6 +420,10 @@
       - MDM System Support using Microsoft Intune (MDM:  Mobile Device Management)
     - Co-Management
       - Locally installed Configuration Manager and MDM Provider
+- Using custom domain within Azure Active Directory:
+  - Every new Azure AD tenant comes with an initial domain name, <domainname>.onmicrosoft.com. You can’t change or delete the initial domain name, but you can add your organization’s names. Adding custom domain names helps you to create user names that are familiar to your users, such as azure@tutorialsdojo.com.
+  - You can verify your custom domain name by using TXT or MX record types.
+  - ![Adding a Custom Domain Name](images/azure-ad-custom_domain.png)
 
 ## Role-Based Access Control
 
@@ -899,6 +903,7 @@
       - Priority numbers from 100-4096 for user-defined security rules
   - An NSG has no effect unless associaated to either a subnet or network interface card (NIC)
   - Once a rule is matched, no other rule is read
+  - Rules can have Allow or Deny actions.
   - NSGs are stateful, meaning that if inbound traffic is allowed outbound traffic is automatically allowed on the ephemeral ports and vice-versa
   - Propertis of NSGs:
     - Priority
@@ -917,6 +922,7 @@
   - Rule execution order:
     - For inbound traffic, Azure processes the rules in a network security group associated to a subnet first, if there's one, and then the rules in a network security group associated to the network interface, if there's one. This includes intra-subnet traffic as well.
     - For outbound traffic, Azure processes the rules in a network security group associated to a network interface first, if there's one, and then the rules in a network security group associated to the subnet, if there's one. This includes intra-subnet traffic as well.
+    - A unique name within the network security group. A number between 100 and 4096. Rules are processed in priority order, with lower numbers processed before higher numbers, because lower numbers have higher priority. Once traffic matches a rule, processing stops
   - The recommended method to manage network security through NSGs is to use NSGs assigned at the subnet level whenever possible. NSGs should be assigned directly to VMs only as necessary to handle exceptions. You cannot assign an NSG to a VNet.
   - Application Security Group
     - Separate service that acts as a container of VMs
@@ -924,8 +930,10 @@
     - When creating the rule you can use the ASG as either the destination or source
     - Any NICs that are assigned to an ASG must exist on the same virtual network (VNET) to which the first network interface was assigned.
     - All network interfaces for both the source and destination application security groups need to exist in the same virtual network.
+    - You can only attach an application security group to the network interface of a virtual machine.
   - Each subnet can have zero, or one, associated network security groups.
   - Each network interface that exists in a subnet can have zero, or one, associated network security groups.
+  - You can only associate a network security group to a subnet within the same region as the network security group.
 - Azure DNS
   - A Domain Name System (DNS) hosting service that provides name resolution
   - Implemented Using:
@@ -944,6 +952,8 @@
       - To link the private DNS zone to a virtual network, you create a virtual network link.
     - Enable auto registration
       - Auto-registers DNS records for VMs in the Linked Virtual Networks
+    - A DNS record is automatically created for the virtual machines that you deploy in the network. DNS records are created for the virtual machines that you have already deployed in the virtual network.– A DNS record is automatically created for the virtual machines that you deploy in the network. DNS records are created for the virtual machines that you have already deployed in the virtual network.
+    - One private DNS zone can have multiple registration virtual networks, however, every virtual network can have exactly one registration zone associated with it.
   - Types of Records
     - NS
       - NS stands for 'nameserver,' and the nameserver record indicates which DNS server is authoritative for that domain
@@ -1064,6 +1074,8 @@
       - Configure the peering connection in the hub only (v2) to allow gateway transit.
       - Configure the peering connection in each spoke (V1 and V3) to use remote gateways
       - Configure all peering connections to allow forwarded traffic
+  - The traffic between virtual machines in peered virtual networks uses the Microsoft backbone infrastructure.
+  - Take note that if your VNet peering connection is in a Disconnected state, it means one of the links created was deleted. To re-establish a peering connection, you will need to delete the disconnected peer and recreate it.
 - VPNs
   - VPN Gateway
     - Establishes connectivity between VNets, similar to VNet peering
@@ -1113,6 +1125,7 @@
          - The local network gateway is a specific object that represents your on-premises location (the site) for routing purposes.
       5. Deploy a VPN connection
          - A VPN connection creates the link for the VPN gateway and local network gateway. It also gives you the status of your site-to-site connection.
+      6. Verify the Connection
     - Lab
       - Lab Diagram:
         - ![Active/Passive VPN Gateway Setup](images/vpn_gateway_lab.png)
@@ -1399,6 +1412,7 @@
       - Public
       - Internal
         - Only same Vnet
+  - Inbound NAT rules allow you to connect to virtual machines (VMs) in an Azure virtual network by using an Azure Load Balancer public IP address and port number.
   - SKUs
     - Standard
       - You can only use a standard Stock-keeping-Unit (SKU) public IP with Standard Load Balancers. Standard Load Balancers have been designed with security in mind. This means that you need to manually authorize any inbound connection. The Standard SKU public IP address is the only SKU that has this configuration by default.
@@ -1635,6 +1649,10 @@
   - An alert rule monitors your telemetry and captures a signal that indicates that something is happening on the specified resource. The alert rule captures the signal and checks to see if the signal meets the criteria of the condition. If the conditions are met, an alert is triggered, which initiates the associated action group and updates the state of the alert.
   - The maximum number of alerts supported through action group configuration settings is up to 100 notifications per hour
   - Both Voice and SMS notifications are limited to no more than one notification every 5 minutes.
+- ITSM Tool Integration
+  - Before you can create a connection in ITSM, you must first install the ITSMC in the Azure Log Analytics workspace.
+  - To create work items in your ITSM tool based on Azure alerts, you’ll need to use the ITSM action in action groups.
+  - The IT Service Management Connector Solution enables you to provide faster resolution of incidents by bringing service desk and monitoring data together. It provides a bi-directional connection between Azure and supported ITSM tools ServiceNow, System Center Service Manager, Provance and Cherwell.
 - Configuring Azure Monitor Logs
   - Description
     - Log Analytics is a service for aggregating log data in a single pane, where it can be analyzed, visualized, and queried.
@@ -1645,8 +1663,20 @@
     - After creation...Attach Workspace Data Sources...
     - General..logs..
   - Log Analytics uses KQL (Kusto query language)
+
+    - Example:  This query searches the SecurityEvent table for records that contain the phrase "Cryptographic". Of those records, 10 records will be returned and displayed.
+
+    ```bash
+    search in (SecurityEvent) "Cryptographic"
+    | take 10
+    ```
+
   - Log Analytics Agent
     - An extension installed on resources to allow for telemetry to be gathered into the workspace
+  - Azure Diagnostics Extension
+    - Azure Diagnostics extension is an agent in Azure Monitor that collects monitoring data from the guest operating system of Azure compute resources including virtual machines.
+    - The Linux Diagnostic Extension will help you monitor the health of a Linux VM running on Microsoft Azure.
+    - Azure Performance Diagnostics VM Extension helps collect performance diagnostic data from Windows VMs.
 - Monitor Insights
   - Description
     - Service-specific monitoring features built into Azure Monitor
@@ -1704,6 +1734,8 @@
     - Monitoring Tools
       - Topology
       - Connection Monitor
+        - Connection Monitor provides unified, end-to-end connection monitoring in Azure Network Watcher. 
+        - The Connection Monitor feature supports hybrid and Azure cloud deployments.
       - Network Performance Monitor
     - Network Diagnostic Tools
       - IP Flow Verify
@@ -1759,6 +1791,16 @@
     - Scheduled backups still run even if you shut down the virtual machine.
     - When creating a backup, you need to ensure that the virtual machines are in the same region as the Recovery Services vault.
     - The VM in a stopped/deallocated state only stops the virtual machine. Take note that Azure Backup only takes snapshots of the VM disks. This means that even if the VM status is running or stopped, you can still create a backup as long as the disk is attached to the VM.
+    - You can’t delete a Recovery Services vault with any of the following dependencies:
+      - You can’t delete a vault that contains protected data sources.
+      - You can’t delete a vault that contains backup data. Once backup data is deleted, it will go into the soft-deleted state.
+      - You can’t delete a vault that contains backup data in the soft-deleted state.
+      - You can’t delete a vault that has registered storage accounts.
+  - Steps to backup an Azure VM
+    1. Create a Recovery Services vault
+    2. Define a backup policy
+    3. Apply the backup policy to protect multiple virtual machines
+
 - Azure Site Recovery
   - Description
     - Azure Site Recovery service provides a solution for automating disaster recovery
@@ -1771,6 +1813,10 @@
     - Forecasts for cloud storage consumption
     - Audits of backup and restore events
   - Uses Log Analytics as its logging service
+- Restore
+  - You can only restore a virtual machine by creating a new VM, restoring a disk, or replace the existing VM disk.
+  - When recovering files, you can’t restore files to a previous or future operating system version. For example, you can’t restore a file from a Windows Server 2016 VM to Windows Server 2012 or a Windows 8 computer. You can restore files from a VM to the same server operating system, or to the compatible client operating system.
+
 - Terms
   - Crash-consistent Backup
     - Crash-consistent backups allow for consistent backups of files on disk. A crash-consistent backup takes a snapshot of all the files at the exact same time. This means that any files that rely on each other are at the same point in time, and thus they are consistent. The very term “crash-consistent” refers to the fact that capturing the backup is like capturing a restore point at the instant leading up to the server crashing or being powered off or reset.
@@ -2021,7 +2067,10 @@
 - https://tutorialsdojo.com/azure-app-service/
 - https://tutorialsdojo.com/azure-virtual-machines/
 - https://tutorialsdojo.com/azure-vpn-gateway/
-
+- https://tutorialsdojo.com/azure-virtual-network-vnet/
+- https://tutorialsdojo.com/azure-application-gateway/
+- https://tutorialsdojo.com/azure-dns/
+- https://tutorialsdojo.com/azure-monitor/
 
 Tracking on questions:
 2:15
